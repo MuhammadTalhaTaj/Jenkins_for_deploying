@@ -1,23 +1,38 @@
 pipeline {
     agent any
-
     stages {
-        stage('Build') {
+        stage('Deploy') {
             steps {
-                echo 'Building App...'
-                sh  'node --version'
+                script {
+                    def remoteDirectory = ""
+                    if (env.BRANCH_NAME == 'main') {
+                        remoteDirectory = '/var/www/html'
+                    } else if (env.BRANCH_NAME == 'feature_1') {
+                        remoteDirectory = '/var/www/html/feature_1'
+                    } else if (env.BRANCH_NAME == 'feature_2') {
+                        remoteDirectory = '/var/www/html/feature_2'
+                    }
+                    
+                    sshPublisher(
+                        publishers: [
+                            sshPublisherDesc(
+                                configName: 'ApacheServer',
+                                transfers: [
+                                    sshTransfer(
+                                        sourceFiles: '**/*.html',
+                                        remoteDirectory: remoteDirectory,
+                                        removePrefix: '',
+                                        execCommand: ''
+                                    )
+                                ],
+                                usePromotionTimestamp: false,
+                                useWorkspaceInPromotion: false,
+                                verbose: true
+                            )
+                        ]
+                    )
+                }
             }
         }
-        stage('Deploying') {
-            steps {
-                echo 'Deploying App...'
-                sh 'node App.js'
-                //sh 'gcloud compute zones list'
-                sh 'gcloud compute scp /var/lib/jenkins/workspace/Assignment-4_main/index.html root@apache-server:/var/www/html --zone=us-central1-f'
-                sh 'gcloud compute scp /var/lib/jenkins/workspace/Assignment-4_main/projects.html root@apache-server:/var/www/html --zone=us-central1-f'
-                sh 'gcloud compute scp /var/lib/jenkins/workspace/Assignment-4_main/about.html root@apache-server:/var/www/html --zone=us-central1-f'
-                sh 'gcloud compute scp /var/lib/jenkins/workspace/Assignment-4_main/contact.html root@apache-server:/var/www/html --zone=us-central1-f'
-            }
-}
-}
+    }
 }
